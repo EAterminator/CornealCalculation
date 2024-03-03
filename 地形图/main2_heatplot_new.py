@@ -4,7 +4,7 @@ import pandas as pd
 import math
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.optimize
+from scipy.optimize import least_squares
 from scipy.interpolate import griddata
 import tkinter as tk
 from tkinter import filedialog
@@ -33,9 +33,12 @@ def open_folder():
 file_list_axl, file_list_dst = open_folder()
 toWrite = {'No': [], 'Name': [], 'result2mm': [], 'result2.4mm': [], 'result3mm': []}
 df = pandas.DataFrame(toWrite)
-df.to_csv('output.csv', mode='a', index=False, header=True)
+df.to_csv('output.csv', mode='w', index=False, header=True)
 for index in range(0,len(file_list_axl),1):
-    parts = file_list_axl[index].split('_')# 记录文件名，后续使用
+    partsRow = file_list_axl[index].split('\\')
+    partsRow = partsRow[len(partsRow)-1].split('.')
+    partsRow = partsRow[0]
+    parts = partsRow.split('_')# 记录文件名，后续使用
     dataH1 = pd.read_table(file_list_axl[index], delim_whitespace=True, header=None,
                            names=['r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12','r13','r14','r15','r16','r17','r18','r19','r20','r21','r22','r23','r24','r25','r26','r27','r28','r29','r30','r31','r32'])
     dataD1 = pd.read_table(file_list_dst[index], delim_whitespace=True, header=None,
@@ -51,38 +54,51 @@ for index in range(0,len(file_list_axl),1):
                 dataD1.iloc[i, j] = (dataD1.iloc[i, j - 1] + dataD1.iloc[i, j + 1]) * 0.5
             elif dataH1.iloc[i, j] > 0.0:
                 dataH1.iloc[i,j] = 337.5 / dataH1.iloc[i,j]
-
     # 找每个轴最大2个采样点
-    dataChosen = [list()] * 300
-    for i in range(300):
-        dataChosen[i].append(0)
-        dataChosen[i].append(0)
-        for j in range(32):
-            temp = dataD1.iloc[i,j]
-            if temp > dataChosen[i][0]:
-                dataChosen[i][1] = dataChosen[i][0]
-                dataChosen[i][0] = temp
-            elif temp > dataChosen[i][1]:
-                dataChosen[i][1] = temp
+    dataChosen = np.zeros((2, 300))
+    dataChosenH = np.zeros((2, 300))
+    for j in range(32):
+        for i in range(300):
+            temp = dataH1.iloc[i, j]
+            if temp > dataChosenH[0][i]:
+                dataChosen[1][i] = dataChosen[0][i]
+                dataChosen[0][i] = dataD1.iloc[i, j]
+                dataChosenH[1][i] = dataChosenH[0][i]
+                dataChosenH[0][i] = temp
+            elif temp > dataChosenH[1][i]:
+                dataChosen[1][i] = dataD1.iloc[i, j]
+                dataChosenH[1][i] = temp
+
+    def residuals(c, x, y):
+        """计算每个数据点到圆的距离与半径之差的平方"""
+        ri = np.sqrt((x - c[0]) ** 2 + (y - c[1]) ** 2)
+        return ri - c[2]
 
 
+    center = np.array([0, 0, 1])
     # 采样点极坐标转化为x，y
-    dataChosenX = [list()] * 3
-    dataChosenR = list()
+    dataChosenX = list()
+    dataChosenY = list()
     for i in range(300):
-        dataChosenX[0].append(dataChosen[i][0] * math.cos(math.radians(11.25 * i)))
-        dataChosenX[0].append(dataChosen[i][1] * math.cos(math.radians(11.25 * i)))
-        dataChosenX[1].append(dataChosen[i][0] * math.sin(math.radians(11.25 * i)))
-        dataChosenX[1].append(dataChosen[i][1] * math.sin(math.radians(11.25 * i)))
-        dataChosenX[2].append(1)
-        dataChosenX[2].append(1)
-        dataChosenR.append(dataChosen[i][0])
-        dataChosenR.append(dataChosen[i][1])
+        dataChosenX.append(dataChosen[0][i] * math.cos(math.radians(1.2 * i)))
+        dataChosenX.append(dataChosen[1][i] * math.cos(math.radians(1.2 * i)))
+        dataChosenY.append(dataChosen[0][i] * math.sin(math.radians(1.2 * i)))
+        dataChosenY.append(dataChosen[1][i] * math.sin(math.radians(1.2 * i)))
     dataChosenX = np.array(dataChosenX)
-    dataChosenR = np.array(dataChosenR)
-    center = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(dataChosenX), dataChosenX)), np.transpose(dataChosenX)), dataChosenR)
-    print(center[0])
-    print(center[1])
+    dataChosenY = np.array(dataChosenY)
+    res = least_squares(residuals, center, args=(dataChosenX, dataChosenY))
+    center = res.x
+
+    # 绘制数据点和拟合的圆
+    circle = plt.Circle((center[0], center[1]), center[2], color='blue', fill=False)
+    fig, ax = plt.subplots()
+    ax.add_artist(circle)
+    plt.scatter(dataChosenX, dataChosenY, color='red')
+    plt.axis('equal')
+    plt.xlim(-5, 5)
+    plt.ylim(-5, 5)
+    plt.savefig('savefigs/'+partsRow+'.png', bbox_inches = 'tight')
+    plt.close()
 
     # 寻找符合要求面积点集，及拟合中心点曲率
     area2mm = pd.DataFrame(
@@ -97,18 +113,18 @@ for index in range(0,len(file_list_axl),1):
         columns=['r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7', 'r8', 'r9', 'r10', 'r11', 'r12', 'r13', 'r14', 'r15', 'r16',
                  'r17', 'r18', 'r19', 'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29', 'r30',
                  'r31', 'r32'], index=range(0, 300, 1))
-    minDis = list()
-    minDisH = list()
-    for i in range(32):
-        minDis.append(2147483647)
-        minDisH.append(0)
+    minDis = np.ones(32) * 2147483647
+    minDisH = np.zeros(32)
     for i in range(300):
         for j in range(32):
             temp = dataD1.iloc[i,j]
-            tempDis = math.pow(temp * math.cos(math.radians(11.25 * i)) - center[0], 2) + math.pow(temp * math.sin(math.radians(11.25 * i)) - center[1], 2)
-            if tempDis<minDis[j]:
+            tempDis = math.pow(temp * math.cos(math.radians(1.2 * i)) - center[0], 2) + math.pow(temp * math.sin(math.radians(1.2 * i)) - center[1], 2)
+            if tempDis < minDis[j]:
                 minDis[j] = tempDis
-                minDisH[j] = dataH1.iloc[i, j]
+                if dataH1.iloc[i, j] == 0:
+                    minDisH[j] = minDisH[j-1]
+                else:
+                    minDisH[j] = dataH1.iloc[i, j]
             area2mm.iloc[i, j] = tempDis < 4.0
             area2_4mm.iloc[i, j] = tempDis < 5.76
             area3mm.iloc[i, j] = tempDis < 9.0
@@ -122,9 +138,11 @@ for index in range(0,len(file_list_axl),1):
             Point1Index = i
     if Point1Index == 0:
         Point2Index = 1
+    elif Point1Index == 31:
+        Point2Index = 30
     else:
         if minDis[Point1Index-1] > minDis[Point1Index+1]:
-            Point2Index = Point1Index - 1
+            Point2Index = Point1Index + 1
         else :
             Point2Index = Point1Index - 1
     centerHPercent = minDisH[Point2Index] / minDisH[Point1Index] + minDisH[Point2Index]
