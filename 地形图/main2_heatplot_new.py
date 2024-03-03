@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import filedialog
 import os
 
-#测试
+
 def open_folder():
     file_list_axl = []
     file_list_dst = []
