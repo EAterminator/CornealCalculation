@@ -172,6 +172,6 @@ for index in range(0,len(file_list_axl),1):
                 result3mm += toAdd
 
     # 单位：平方方毫米*屈光度（mm2*D）
-    toWrite = {'No': [parts[0]], 'Name': [parts[1]+parts[2]+'_'+parts[3]], 'result2mm': [result2mm], 'result2.4mm': [result2_4mm], 'result3mm': [result3mm]}
+    toWrite = {'No': [parts[0]], 'Name': [parts[1]+parts[2]+'_'+parts[3]+'_'+parts[4]], 'result2mm': [result2mm], 'result2.4mm': [result2_4mm], 'result3mm': [result3mm]}
     df = pandas.DataFrame(toWrite)
     df.to_csv('output.csv', mode='a', index=False, header=False)
