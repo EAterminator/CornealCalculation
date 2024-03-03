@@ -23,10 +23,10 @@ def open_folder():
         # 遍历文件名
         for file in files:
             if file.endswith('axl'):
-                # 将文件添加到列表中
-                file_list_axl.append(file)
+                # 将文件路径添加到列表中
+                file_list_axl.append(os.path.join(folder, file))
             if file.endswith('dst'):
-                file_list_dst.append(file)
+                file_list_dst.append(os.path.join(folder, file))
     return file_list_axl, file_list_dst
 
 
