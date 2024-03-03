@@ -4,6 +4,7 @@ import pandas as pd
 import math
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.optimize
 from scipy.interpolate import griddata
 import tkinter as tk
 from tkinter import filedialog
@@ -64,6 +65,7 @@ for index in range(0,len(file_list_axl),1):
             elif temp > dataChosen[i][1]:
                 dataChosen[i][1] = temp
 
+
     # 采样点极坐标转化为x，y
     dataChosenX = [list()] * 3
     dataChosenR = list()
@@ -78,7 +80,7 @@ for index in range(0,len(file_list_axl),1):
         dataChosenR.append(dataChosen[i][1])
     dataChosenX = np.array(dataChosenX)
     dataChosenR = np.array(dataChosenR)
-    center = np.dot(np.dot(np.linalg.inv(np.dot(dataChosenX,dataChosenX)),dataChosenX),dataChosenR)
+    center = np.dot(np.dot(np.linalg.inv(np.dot(np.transpose(dataChosenX), dataChosenX)), np.transpose(dataChosenX)), dataChosenR)
     print(center[0])
     print(center[1])
 
