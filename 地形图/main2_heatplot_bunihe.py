@@ -79,15 +79,15 @@ for index in range(0,len(file_list_axl),1):
                  'r17', 'r18', 'r19', 'r20', 'r21', 'r22', 'r23', 'r24', 'r25', 'r26', 'r27', 'r28', 'r29', 'r30',
                  'r31', 'r32'], index=range(0, 300, 1))
     for i in range(300):
-        centerH += dataH1.iloc[i, 0]
+        centerH += dataH1.iloc[i, 0]/dataD1.iloc[i,0]
         for j in range(32):
             temp = dataD1.iloc[i,j]
             tempDis = math.pow(temp * math.cos(math.radians(1.2 * i)), 2) + math.pow(temp * math.sin(math.radians(1.2 * i)), 2)
-            area2mm.iloc[i, j] = tempDis < 4.0
-            area2_4mm.iloc[i, j] = tempDis < 5.76
-            area3mm.iloc[i, j] = tempDis < 9.0
-    centerH = centerH / 300
-    # print(centerH)
+            area2mm.iloc[i, j] = tempDis <= 4.0
+            area2_4mm.iloc[i, j] = tempDis <= 5.76
+            area3mm.iloc[i, j] = tempDis <= 9.0
+    centerH = centerH / np.sum(1/dataD1.iloc[:,0])
+    print(centerH)
     # print(dataH1)
     # print(dataD1)
     # 计算曲率总变化值
@@ -105,17 +105,18 @@ for index in range(0,len(file_list_axl),1):
     #     for j in range(32):
     #         if dataD1.iloc[i, j] < dataD1.iloc[i, 0]:
     #             break
-    #         toAdd = (1/300)*math.pi*(math.pow(dataD1.iloc[i,j],2)-math.pow(dataD1.iloc[i,j-1],2))*(dataH1.iloc[i, j] + dataH1.iloc[i, j-1])*0.5
+    #         toAdd = (1/300)*math.pi*(abs(math.pow(dataD1.iloc[i,j],2)-math.pow(dataD1.iloc[i,j-1],2)))*(dataH1.iloc[i, j] + dataH1.iloc[i, j-1])*0.5
     #         if area2mm.iloc[i, j]:
     #             result2mm += toAdd
     #         if area2_4mm.iloc[i, j]:
     #             result2_4mm += toAdd
     #         if area3mm.iloc[i, j]:
     #             result3mm += toAdd
-
+    centerH_tensor = np.ones((300,32))
+    centerH_tensor = centerH_tensor*centerH
     # 使用 numpy 的广播功能进行向量化计算
     # 首先计算每个元素的 toAdd 值
-    toAdd_0 = (1/300) * np.pi * (np.power(dataD1.iloc[:,0], 2)) * dataH1.iloc[:,0]
+    toAdd_0 = (1/300) * np.pi * (np.power(dataD1.iloc[:,0], 2)) * (dataH1.iloc[:,0] - centerH_tensor[:,0])
     result2mm = np.sum(toAdd_0 * area2mm.iloc[:, 0])
     result2_4mm = np.sum(toAdd_0 * area2_4mm.iloc[:, 0])
     result3mm = np.sum(toAdd_0 * area3mm.iloc[:, 0])
@@ -123,7 +124,7 @@ for index in range(0,len(file_list_axl),1):
     # 对于 j > 0 的情况
     for j in range(1, 32):
         # 计算每个 toAdd
-        toAdd_j = (1/300) * np.pi * (np.power(dataD1.iloc[:,j], 2) - np.power(dataD1.iloc[:,j-1], 2)) * (dataH1.iloc[:, j] + dataH1.iloc[:, j-1]) * 0.5
+        toAdd_j = (1/300) * np.pi * (np.power(dataD1.iloc[:,j], 2) - np.power(dataD1.iloc[:,j-1], 2)) * ((dataH1.iloc[:, j] + dataH1.iloc[:, j-1]) * 0.5 - centerH_tensor[:,j])
         # 根据条件进行累加
         mask = dataD1.iloc[:, j] >= dataD1.iloc[:, 0]
         result2mm += np.sum(toAdd_j * area2mm.iloc[:, j] * mask)
@@ -131,9 +132,6 @@ for index in range(0,len(file_list_axl),1):
         result3mm += np.sum(toAdd_j * area3mm.iloc[:, j] * mask)
     # print(result2mm,result2_4mm,result3mm)
     # print(math.pi*4*centerH,math.pi*2.4*2.4*centerH,math.pi*9*centerH)
-    result2mm = result2mm - math.pi*4*centerH
-    result2_4mm = result2_4mm - math.pi*2.4*2.4*centerH
-    result3mm = result3mm - math.pi*9*centerH
 
 
     # 单位：平方方毫米*屈光度（mm2*D）
