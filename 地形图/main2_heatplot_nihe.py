@@ -33,7 +33,7 @@ def open_folder():
 file_list_axl, file_list_dst = open_folder()
 toWrite = {'No': [], 'Name': [], 'result2mm': [], 'result2.4mm': [], 'result3mm': []}
 df = pandas.DataFrame(toWrite)
-df.to_csv('output.csv', mode='w', index=False, header=True)
+df.to_csv('output_least_square.csv', mode='w', index=False, header=True)
 for index in range(0,len(file_list_axl),1):
     partsRow = file_list_axl[index].split('\\')
     partsRow = partsRow[len(partsRow)-1].split('.')
@@ -43,18 +43,26 @@ for index in range(0,len(file_list_axl),1):
                            names=['r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12','r13','r14','r15','r16','r17','r18','r19','r20','r21','r22','r23','r24','r25','r26','r27','r28','r29','r30','r31','r32'])
     dataD1 = pd.read_table(file_list_dst[index], delim_whitespace=True, header=None,
                            names=['r1','r2','r3','r4','r5','r6','r7','r8','r9','r10','r11','r12','r13','r14','r15','r16','r17','r18','r19','r20','r21','r22','r23','r24','r25','r26','r27','r28','r29','r30','r31','r32'])
-    dataH1 = dataH1.fillna(0)
-    dataD1 = dataD1.fillna(0)
-
+    # dataH1 = dataH1.fillna(0)
+    # dataD1 = dataD1.fillna(0)
+    # dataD1.replace(0, np.nan, inplace=True)
+    # dataH1.replace(0, np.nan, inplace=True)
     # 计算屈光度并解决中间异常值
-    for i in range(300):
-        for j in range(32):
-            if 0 < j < 31 and dataH1.iloc[i, j] <= 0.0 < dataH1.iloc[i, j - 1] and dataH1.iloc[i, j + 1] > 0.0:
-                dataH1.iloc[i, j] = 337.5 / ((dataH1.iloc[i, j - 1] + dataH1.iloc[i, j + 1]) * 0.5)
-            elif dataH1.iloc[i, j] > 0.0:
-                dataH1.iloc[i,j] = 337.5 / dataH1.iloc[i,j]
-            if 0 < j < 31 and dataD1.iloc[i, j] <= 0.0 < dataD1.iloc[i, j - 1] and dataD1.iloc[i, j + 1] > 0.0:
-                dataD1.iloc[i, j] = (dataD1.iloc[i, j - 1] + dataD1.iloc[i, j + 1]) * 0.5
+    # for i in range(300):
+    #     for j in range(32):
+    #         if 0 < j < 31 and dataH1.iloc[i, j] <= 0.0 < dataH1.iloc[i, j - 1] and dataH1.iloc[i, j + 1] > 0.0:
+    #             dataH1.iloc[i, j] = 337.5 / ((dataH1.iloc[i, j - 1] + dataH1.iloc[i, j + 1]) * 0.5)
+    #         elif dataH1.iloc[i, j] > 0.0:
+    #             dataH1.iloc[i,j] = 337.5 / dataH1.iloc[i,j]
+    #         if 0 < j < 31 and dataD1.iloc[i, j] <= 0.0 < dataD1.iloc[i, j - 1] and dataD1.iloc[i, j + 1] > 0.0:
+    #             dataD1.iloc[i, j] = (dataD1.iloc[i, j - 1] + dataD1.iloc[i, j + 1]) * 0.5
+    dataH1.interpolate(method='linear', axis=1, inplace=True)  # axis=1 表示沿着列进行插值
+
+    # 对 dataH1 中非NaN的值进行转换
+    dataH1 = dataH1.applymap(lambda x: 337.5 / x if x > 0.0 else x)
+
+    # 对 dataD1 进行线性插值
+    dataD1.interpolate(method='linear', axis=1, inplace=True)  # axis=1 表示沿着列进行插值
     # 找每个轴最大2个采样点
     dataChosen = np.zeros((2, 300))
     dataChosenH = np.zeros((2, 300))
@@ -153,26 +161,47 @@ for index in range(0,len(file_list_axl),1):
     result2mm = 0.0
     result2_4mm = 0.0
     result3mm = 0.0
-    for i in range(300):
-        toAdd = 1/300*math.pi*(abs(math.pow(dataD1.iloc[i,0],2)))*(dataH1.iloc[i,0]-centerH)
-        if area2mm.iloc[i, 0]:
-            result2mm += toAdd
-        if area2_4mm.iloc[i, 0]:
-            result2_4mm += toAdd
-        if area3mm.iloc[i, 0]:
-            result3mm += toAdd
-        for j in range(32):
-            if dataD1.iloc[i, j] < dataD1.iloc[i, 0]:
-                break
-            toAdd = 1/300*math.pi*(abs(math.pow(dataD1.iloc[i,j],2)-math.pow(dataD1.iloc[i,j-1],2)))*(centerH-(dataH1.iloc[i, j] + dataH1.iloc[i, j-1])*0.5)
-            if area2mm.iloc[i, j]:
-                result2mm += toAdd
-            if area2_4mm.iloc[i, j]:
-                result2_4mm += toAdd
-            if area3mm.iloc[i, j]:
-                result3mm += toAdd
+    # for i in range(300):
+    #     toAdd = 1/300*math.pi*(abs(math.pow(dataD1.iloc[i,0],2)))*(dataH1.iloc[i,0]-centerH)
+    #     if area2mm.iloc[i, 0]:
+    #         result2mm += toAdd
+    #     if area2_4mm.iloc[i, 0]:
+    #         result2_4mm += toAdd
+    #     if area3mm.iloc[i, 0]:
+    #         result3mm += toAdd
+    #     for j in range(32):
+    #         if dataD1.iloc[i, j] < dataD1.iloc[i, 0]:
+    #             break
+    #         toAdd = 1/300*math.pi*(abs(math.pow(dataD1.iloc[i,j],2)-math.pow(dataD1.iloc[i,j-1],2)))*(centerH-(dataH1.iloc[i, j] + dataH1.iloc[i, j-1])*0.5)
+    #         if area2mm.iloc[i, j]:
+    #             result2mm += toAdd
+    #         if area2_4mm.iloc[i, j]:
+    #             result2_4mm += toAdd
+    #         if area3mm.iloc[i, j]:
+    #             result3mm += toAdd
+    # 使用 numpy 的广播功能进行向量化计算
+    # 首先计算每个元素的 toAdd 值
+    toAdd_0 = (1/300) * np.pi * (np.power(dataD1.iloc[:,0], 2)) * dataH1.iloc[:,0]
+    result2mm = np.sum(toAdd_0 * area2mm.iloc[:, 0])
+    result2_4mm = np.sum(toAdd_0 * area2_4mm.iloc[:, 0])
+    result3mm = np.sum(toAdd_0 * area3mm.iloc[:, 0])
+
+    # 对于 j > 0 的情况
+    for j in range(1, 32):
+        # 计算每个 toAdd
+        toAdd_j = (1/300) * np.pi * (np.power(dataD1.iloc[:,j], 2) - np.power(dataD1.iloc[:,j-1], 2)) * (dataH1.iloc[:, j] + dataH1.iloc[:, j-1]) * 0.5
+        # 根据条件进行累加
+        mask = dataD1.iloc[:, j] >= dataD1.iloc[:, 0]
+        result2mm += np.sum(toAdd_j * area2mm.iloc[:, j] * mask)
+        result2_4mm += np.sum(toAdd_j * area2_4mm.iloc[:, j] * mask)
+        result3mm += np.sum(toAdd_j * area3mm.iloc[:, j] * mask)
+    # print(result2mm,result2_4mm,result3mm)
+    # print(math.pi*4*centerH,math.pi*2.4*2.4*centerH,math.pi*9*centerH)
+    result2mm = result2mm - math.pi*4*centerH
+    result2_4mm = result2_4mm - math.pi*2.4*2.4*centerH
+    result3mm = result3mm - math.pi*9*centerH
 
     # 单位：平方方毫米*屈光度（mm2*D）
     toWrite = {'No': [parts[0]], 'Name': [parts[1]+parts[2]+'_'+parts[3]+'_'+parts[4]], 'result2mm': [result2mm], 'result2.4mm': [result2_4mm], 'result3mm': [result3mm]}
     df = pandas.DataFrame(toWrite)
-    df.to_csv('output.csv', mode='a', index=False, header=False)
+    df.to_csv('output_least_square.csv', mode='a', index=False, header=False)
