@@ -51,9 +51,10 @@ for index in range(0,len(file_list_axl),1):
         for j in range(32):
             if 0 < j < 31 and dataH1.iloc[i, j] <= 0.0 < dataH1.iloc[i, j - 1] and dataH1.iloc[i, j + 1] > 0.0:
                 dataH1.iloc[i, j] = 337.5 / ((dataH1.iloc[i, j - 1] + dataH1.iloc[i, j + 1]) * 0.5)
-                dataD1.iloc[i, j] = (dataD1.iloc[i, j - 1] + dataD1.iloc[i, j + 1]) * 0.5
             elif dataH1.iloc[i, j] > 0.0:
                 dataH1.iloc[i,j] = 337.5 / dataH1.iloc[i,j]
+            if 0 < j < 31 and dataD1.iloc[i, j] <= 0.0 < dataD1.iloc[i, j - 1] and dataD1.iloc[i, j + 1] > 0.0:
+                dataD1.iloc[i, j] = (dataD1.iloc[i, j - 1] + dataD1.iloc[i, j + 1]) * 0.5
     # 找每个轴最大2个采样点
     dataChosen = np.zeros((2, 300))
     dataChosenH = np.zeros((2, 300))
@@ -90,15 +91,15 @@ for index in range(0,len(file_list_axl),1):
     center = res.x
 
     # 绘制数据点和拟合的圆
-    circle = plt.Circle((center[0], center[1]), center[2], color='blue', fill=False)
-    fig, ax = plt.subplots()
-    ax.add_artist(circle)
-    plt.scatter(dataChosenX, dataChosenY, color='red')
-    plt.axis('equal')
-    plt.xlim(-5, 5)
-    plt.ylim(-5, 5)
-    plt.savefig('savefigs/'+partsRow+'.png', bbox_inches = 'tight')
-    plt.close()
+    # circle = plt.Circle((center[0], center[1]), center[2], color='blue', fill=False)
+    # fig, ax = plt.subplots()
+    # ax.add_artist(circle)
+    # plt.scatter(dataChosenX, dataChosenY, color='red')
+    # plt.axis('equal')
+    # plt.xlim(-5, 5)
+    # plt.ylim(-5, 5)
+    # plt.savefig('savefigs/'+partsRow+'.png', bbox_inches = 'tight')
+    # plt.close()
 
     # 寻找符合要求面积点集，及拟合中心点曲率
     area2mm = pd.DataFrame(
