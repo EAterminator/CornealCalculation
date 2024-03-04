@@ -90,10 +90,8 @@ for index in range(0,len(file_list_axl),1):
     print(centerH)
     # print(dataH1)
     # print(dataD1)
+
     # 计算曲率总变化值
-    result2mm = 0.0
-    result2_4mm = 0.0
-    result3mm = 0.0
     # for i in range(300):
     #     toAdd = 1/300*math.pi*(math.pow(dataD1.iloc[i,0],2))*dataH1.iloc[i,0]
     #     if area2mm.iloc[i, 0]:

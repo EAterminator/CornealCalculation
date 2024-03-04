@@ -99,15 +99,15 @@ for index in range(0,len(file_list_axl),1):
     center = res.x
 
     # 绘制数据点和拟合的圆
-    # circle = plt.Circle((center[0], center[1]), center[2], color='blue', fill=False)
-    # fig, ax = plt.subplots()
-    # ax.add_artist(circle)
-    # plt.scatter(dataChosenX, dataChosenY, color='red')
-    # plt.axis('equal')
-    # plt.xlim(-5, 5)
-    # plt.ylim(-5, 5)
-    # plt.savefig('savefigs/'+partsRow+'.png', bbox_inches = 'tight')
-    # plt.close()
+    circle = plt.Circle((center[0], center[1]), center[2], color='blue', fill=False)
+    fig, ax = plt.subplots()
+    ax.add_artist(circle)
+    plt.scatter(dataChosenX, dataChosenY, color='red')
+    plt.axis('equal')
+    plt.xlim(-5, 5)
+    plt.ylim(-5, 5)
+    plt.savefig('savefigs/'+partsRow+'.png', bbox_inches = 'tight')
+    plt.close()
 
     # 寻找符合要求面积点集，及拟合中心点曲率
     area2mm = pd.DataFrame(
@@ -158,11 +158,8 @@ for index in range(0,len(file_list_axl),1):
     centerH = minDisH[Point2Index] * centerHPercent + minDisH[Point1Index] * (1 - centerHPercent)
 
     # 计算曲率总变化值
-    result2mm = 0.0
-    result2_4mm = 0.0
-    result3mm = 0.0
     # for i in range(300):
-    #     toAdd = 1/300*math.pi*(abs(math.pow(dataD1.iloc[i,0],2)))*(dataH1.iloc[i,0]-centerH)
+    #     toAdd = 1/300*math.pi*(math.pow(dataD1.iloc[i,0],2))*dataH1.iloc[i,0]
     #     if area2mm.iloc[i, 0]:
     #         result2mm += toAdd
     #     if area2_4mm.iloc[i, 0]:
@@ -172,16 +169,18 @@ for index in range(0,len(file_list_axl),1):
     #     for j in range(32):
     #         if dataD1.iloc[i, j] < dataD1.iloc[i, 0]:
     #             break
-    #         toAdd = 1/300*math.pi*(abs(math.pow(dataD1.iloc[i,j],2)-math.pow(dataD1.iloc[i,j-1],2)))*(centerH-(dataH1.iloc[i, j] + dataH1.iloc[i, j-1])*0.5)
+    #         toAdd = (1/300)*math.pi*(abs(math.pow(dataD1.iloc[i,j],2)-math.pow(dataD1.iloc[i,j-1],2)))*(dataH1.iloc[i, j] + dataH1.iloc[i, j-1])*0.5
     #         if area2mm.iloc[i, j]:
     #             result2mm += toAdd
     #         if area2_4mm.iloc[i, j]:
     #             result2_4mm += toAdd
     #         if area3mm.iloc[i, j]:
     #             result3mm += toAdd
+    centerH_tensor = np.ones((300, 32))
+    centerH_tensor = centerH_tensor * centerH
     # 使用 numpy 的广播功能进行向量化计算
     # 首先计算每个元素的 toAdd 值
-    toAdd_0 = (1/300) * np.pi * (np.power(dataD1.iloc[:,0], 2)) * dataH1.iloc[:,0]
+    toAdd_0 = (1 / 300) * np.pi * (np.power(dataD1.iloc[:, 0], 2)) * (dataH1.iloc[:, 0] - centerH_tensor[:, 0])
     result2mm = np.sum(toAdd_0 * area2mm.iloc[:, 0])
     result2_4mm = np.sum(toAdd_0 * area2_4mm.iloc[:, 0])
     result3mm = np.sum(toAdd_0 * area3mm.iloc[:, 0])
@@ -189,7 +188,8 @@ for index in range(0,len(file_list_axl),1):
     # 对于 j > 0 的情况
     for j in range(1, 32):
         # 计算每个 toAdd
-        toAdd_j = (1/300) * np.pi * (np.power(dataD1.iloc[:,j], 2) - np.power(dataD1.iloc[:,j-1], 2)) * (dataH1.iloc[:, j] + dataH1.iloc[:, j-1]) * 0.5
+        toAdd_j = (1 / 300) * np.pi * (np.power(dataD1.iloc[:, j], 2) - np.power(dataD1.iloc[:, j - 1], 2)) * (
+                    (dataH1.iloc[:, j] + dataH1.iloc[:, j - 1]) * 0.5 - centerH_tensor[:, j])
         # 根据条件进行累加
         mask = dataD1.iloc[:, j] >= dataD1.iloc[:, 0]
         result2mm += np.sum(toAdd_j * area2mm.iloc[:, j] * mask)
@@ -197,9 +197,6 @@ for index in range(0,len(file_list_axl),1):
         result3mm += np.sum(toAdd_j * area3mm.iloc[:, j] * mask)
     # print(result2mm,result2_4mm,result3mm)
     # print(math.pi*4*centerH,math.pi*2.4*2.4*centerH,math.pi*9*centerH)
-    result2mm = result2mm - math.pi*4*centerH
-    result2_4mm = result2_4mm - math.pi*2.4*2.4*centerH
-    result3mm = result3mm - math.pi*9*centerH
 
     # 单位：平方方毫米*屈光度（mm2*D）
     toWrite = {'No': [parts[0]], 'Name': [parts[1]+parts[2]+'_'+parts[3]+'_'+parts[4]], 'result2mm': [result2mm], 'result2.4mm': [result2_4mm], 'result3mm': [result3mm]}
