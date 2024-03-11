@@ -19,9 +19,9 @@ for i in range(0,dataH1.shape[1]):
 
 def cal_curve(r, h):
     if r >= h:
-        return math.pow(r, 2) * np.arccos((r-h) / r)
+        return math.pow(r, 2) * math.atan2((r-h) , r)
     else:
-        return math.pow(r, 2) * np.arccos((h-r) / h)
+        return math.pow(r, 2) * math.atan2((h-r) , h)
 
 
 toAdd = 1/300*math.pi*(abs(cal_curve(dataD1.iloc[i, j], dataH1.iloc[i, j]) - cal_curve(dataD1.iloc[i, j-1], dataH1.iloc[i, j-1])))
